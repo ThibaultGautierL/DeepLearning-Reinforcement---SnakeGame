@@ -38,8 +38,12 @@ class SnakeGameAI:
         self.display = pygame.display.set_mode((self.w, self.h))
         pygame.display.set_caption('SnakeAI')
         self.clock = pygame.time.Clock()
+        self.reset_ai_game()
 
-        #On part a droite de base
+
+    #Fonction d'initialisation et reinitialisation de l'IA après chaque partie
+    def reset_ai_game(self):
+         #Partie initialisation 
         self.direction = Direction.RIGHT
 
         self.head = Point(self.w/2, self.h/2)
@@ -51,6 +55,10 @@ class SnakeGameAI:
         self.apple = None
         self._place_apple()
 
+        #Pour savoir le nombre d'itération que l'on a pour éviter qu'il tourne en boucle
+        self.frame_iteration = 0
+
+
     def _place_apple(self):
         x = random.randint(0, (self.w-BLOCK_SIZE )//BLOCK_SIZE )*BLOCK_SIZE
         y = random.randint(0, (self.h-BLOCK_SIZE )//BLOCK_SIZE )*BLOCK_SIZE
@@ -58,38 +66,52 @@ class SnakeGameAI:
         if self.apple in self.snake:
             self._place_apple()
 
+    #Fonction à appeler pour l'IA
+    def play_step(self, action):
 
-    def play_step(self):
-        
+        self.frame_iteration += 1
+
+
         #R2cupérer les évènement du user ou de l'IA
         for event in pygame.event.get():
             #Arreter l'instance
             if event.type == pygame.QUIT:
                 pygame.quit()
                 quit()
-            #Cliquer sur une direction
-            if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_LEFT and self.direction != Direction.RIGHT:
-                    self.direction = Direction.LEFT
-                elif event.key == pygame.K_RIGHT and self.direction != Direction.LEFT:
-                    self.direction = Direction.RIGHT
-                elif event.key == pygame.K_UP and self.direction != Direction.DOWN:
-                    self.direction = Direction.UP
-                elif event.key == pygame.K_DOWN and self.direction != Direction.UP:
-                    self.direction = Direction.DOWN
+            # #Cliquer sur une direction
+            # if event.type == pygame.KEYDOWN:
+            #     if event.key == pygame.K_LEFT and self.direction != Direction.RIGHT:
+            #         self.direction = Direction.LEFT
+            #     elif event.key == pygame.K_RIGHT and self.direction != Direction.LEFT:
+            #         self.direction = Direction.RIGHT
+            #     elif event.key == pygame.K_UP and self.direction != Direction.DOWN:
+            #         self.direction = Direction.UP
+            #     elif event.key == pygame.K_DOWN and self.direction != Direction.UP:
+            #         self.direction = Direction.DOWN
 
         # Met a jours la poistion pour déplacer le snake
-        self._move(self.direction)  # Toujours tout droit avec la direction définie par les touches
+        self._move(action)  # Toujours tout droit avec la direction définie par les touches
         self.snake.insert(0, self.head)
+        reward = 0
 
+        #Vérifier sic'est Game Over
         game_over = False
         if self.is_collision():
             game_over = True
-            return game_over, self.score
+            reward = -100
+            return reward, game_over, self.score
+    
+
+        #On ajoute cette fonction pour punir le modèl s'il tourne en rond pendant trop longtemps
+        if self.frame_iteration > 100*len(self.snake):
+            reward = -10
+            return reward, game_over, self.score
+        
 
         # Gestion de la nourriture, avec un bonus si on la mange
         if self.head == self.apple:
             self.score += 1
+            reward = 10
             self._place_apple()
         else:
             self.snake.pop()
@@ -98,7 +120,7 @@ class SnakeGameAI:
         self._update_ui()
         self.clock.tick(SPEED)
 
-        return game_over, self.score
+        return reward, game_over, self.score
 
     #Vérifier les collisions
     def is_collision(self):
@@ -131,33 +153,53 @@ class SnakeGameAI:
         pygame.display.flip()
 
 
-    def _move(self, direction):
+    def _move(self, action):
+
+        # [Devant , à droite, à gauche]
+        possible_direction = [Direction.RIGHT, Direction.DOWN, Direction.LEFT, Direction.UP]
+        #Direction actuelle du snake
+        idx = possible_direction.index(self.direction)
+
+        #
+        if np.array_equal(action, [1,0,0]) : 
+            #Récupère la direction actuelle
+            new_direction = possible_direction[idx] # On va devant (donc pas de changement)
+        elif np.array_equal(action, [0,1,0]): #On va à droite
+            #Donc si on est à RIGHT, on passe à Down, etc... et si on est à UP, on revient à right
+            next_idx = (idx + 1) % 4
+            new_direction = possible_direction[next_idx] 
+        else: #On va à gauche
+            #Donc si on est à RIGHT, on passe à UP, etc... et si on est à UP, on revient à Left
+            next_idx = (idx - 1) % 4
+            new_direction = possible_direction[next_idx] 
+
+        self.direction = new_direction
 
         #Calcul de la nouvelle position
         x = self.head.x
         y = self.head.y
-        if direction == Direction.RIGHT:
+        if self.direction == Direction.RIGHT:
             x += BLOCK_SIZE
-        elif direction == Direction.LEFT:
+        elif self.direction == Direction.LEFT:
             x -= BLOCK_SIZE
-        elif direction == Direction.DOWN:
+        elif self.direction == Direction.DOWN:
             y += BLOCK_SIZE
-        elif direction == Direction.UP:
+        elif self.direction == Direction.UP:
             y -= BLOCK_SIZE
 
         self.head = Point(x, y)
 
 
 
-if __name__ == '__main__':
-    game = SnakeGameAI()
+# if __name__ == '__main__':
+#     game = SnakeGameAI()
 
-    while True:
+#     while True:
 
-        game_over, score = game.play_step()
+#         game_over, score = game.play_step()
 
-        if game_over:
-            print(f'Game over! Score: {score}')
-            break
+#         if game_over:
+#             print(f'Game over! Score: {score}')
+#             break
 
-    pygame.quit()
+#     pygame.quit()
