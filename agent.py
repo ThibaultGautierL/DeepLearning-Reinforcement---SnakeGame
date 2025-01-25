@@ -27,7 +27,37 @@ class Agent:
         point_under = Point(head_snake.x, head_snake.y - 20)
         point_over = Point(head_snake.x, head_snake.y + 20)
 
-        
+        #Les direction actuelles, en binaire. Donc comme on en a forcement 1 vrai, les autres sont faux (donc 0)
+        direction_left = game.direction == Direction.LEFT
+        direction_right = game.direction == Direction.RIGHT
+        direction_under = game.direction == Direction.DOWN
+        direction_over = game.direction == Direction.UP
+
+        #On a 11 valeurs d'états de notre snake :  
+        #[Danger devant, Danger Droite, Danger Gauche,
+        #Direction LEFT, Direction DROITE, Direction UP, Direction DOWN
+        #Pomme à Gauche, Pomme à Droite, Pomme Up, Pomme Down]
+
+        state = [
+            #Danger devant
+            (direction_left and game.is_collision(point_left)) or
+            (direction_right and game.is_collision(point_right)) or
+            (direction_over and game.is_collision(point_over)) or
+            (point_under and game.is_collision(point_under)),
+
+            #Danger à droite
+            (direction_left and game.is_collision(point_over)) or
+            (direction_right and game.is_collision(point_under)) or
+            (direction_over and game.is_collision(point_right)) or
+            (point_under and game.is_collision(point_left)),
+
+            #Danger à gauche
+            (direction_left and game.is_collision(point_under)) or
+            (direction_right and game.is_collision(point_over)) or
+            (direction_over and game.is_collision(point_left)) or
+            (point_under and game.is_collision(point_right)),
+        ]
+
 
         pass
 
@@ -55,7 +85,7 @@ def train():
     game = SnakeGameAI()
 
     #On veut boucler au max
-    print(f"dans la boucle de jeu" + {agent.number_games})
+    print(f"dans la boucle de jeu {agent.number_games}")
     while True:
         #On récupère l'ancien état
         last_state = agent.get_state(game)
@@ -74,7 +104,7 @@ def train():
         agent.memory(last_state, last_move, reward, new_state, game_over)
 
         if game_over:
-            print(f"Perdu Game" + {agent.number_games})
+            print(f"Perdu Game {agent.number_games}")
             #Si on perd, on veut entrainer la mémoire à long terme
             game.reset_ai_game()
             agent.number_games += 1
@@ -83,7 +113,7 @@ def train():
             if score > best_score:
                 best_score = score
                 #Là on save le modèle
-            print(f"Score:" + {score})
+            print(f"Score: {score}")
 
 if __name__ == '__main__':
     train()

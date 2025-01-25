@@ -123,13 +123,16 @@ class SnakeGameAI:
         return reward, game_over, self.score
 
     #Vérifier les collisions
-    def is_collision(self):
+    def is_collision(self, point=None):
+
+        if point is None: 
+            point = self.head
 
         # Mange le mur
-        if self.head.x > self.w - BLOCK_SIZE or self.head.x < 0 or self.head.y > self.h - BLOCK_SIZE or self.head.y < 0:
+        if point.x > self.w - BLOCK_SIZE or point.x < 0 or point.y > self.h - BLOCK_SIZE or point.y < 0:
             return True
         #Mange sa queue
-        if self.head in self.snake[1:]:
+        if point in self.snake[1:]:
             return True
 
         return False
