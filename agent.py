@@ -15,7 +15,7 @@ class Agent:
     def __init__(self):
         self.number_games = 0
         self.randomness = 0 #pour les random moves
-        self.discount_rate = 0.8
+        self.discount_rate = 0.9
         self.memory = deque(maxlen=Max_Memory) #SI on dépasse la mémoire, on supprime les données du début. (Garde les + récentes)
 
         #Size of states , , nombre d'action
@@ -109,8 +109,8 @@ class Agent:
 
     #Random moves : on va faire de lexploration et de l'exploitation
     def get_action(self, state):
-        #Determine le nombre pour savoir si IA va jouer aléatoireement. Plus on joue, meilleur on est
-        self.randomness = 100 - self.number_games
+        #Determine le nombre de parties pour savoir si IA va jouer aléatoireement. Plus on joue, meilleur on est
+        self.randomness = max(10, 80 - self.number_games)
         final_move = [0,0,0]
         #Si on est en dessous de notre nombre
         if random.randint(0,200) < self.randomness:
@@ -134,9 +134,7 @@ class Agent:
 
 #Training fonction
 def train():
-    list_scores = []
-    list_moyen_score = []
-    total_score = 0
+
     best_score = 0
     agent = Agent()
     game = SnakeGameAI()
@@ -171,6 +169,7 @@ def train():
                 best_score = score
                 agent.model.save()
             print(f"Score: {score}")
+
 
             #Faire liste affichage
 

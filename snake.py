@@ -27,7 +27,7 @@ GREEN2 = (100, 200, 0)
 BLACK = (0,0,0)
 
 BLOCK_SIZE = 20
-SPEED = 50
+SPEED = 100
 
 class SnakeGameAI:
 
@@ -96,25 +96,21 @@ class SnakeGameAI:
 
         #Vérifier sic'est Game Over
         game_over = False
-        if self.is_collision():
+        if self.is_collision() or self.frame_iteration > 100*len(self.snake):
             game_over = True
-            reward = -100
-            return reward, game_over, self.score
-    
-
-        #On ajoute cette fonction pour punir le modèl s'il tourne en rond pendant trop longtemps
-        if self.frame_iteration > 100*len(self.snake):
             reward = -10
             return reward, game_over, self.score
         
 
         # Gestion de la nourriture, avec un bonus si on la mange
         if self.head == self.apple:
+            print("pomme mangée")
             self.score += 1
             reward = 10
             self._place_apple()
         else:
             self.snake.pop()
+            
 
         #Mise à jour de la fenêtre et de l'horloge
         self._update_ui()
@@ -164,7 +160,7 @@ class SnakeGameAI:
         idx = possible_direction.index(self.direction)
 
         #
-        if np.array_equal(action, [1,0,0]) : 
+        if np.array_equal(action, [1, 0, 0]) : 
             #Récupère la direction actuelle
             new_direction = possible_direction[idx] # On va devant (donc pas de changement)
         elif np.array_equal(action, [0,1,0]): #On va à droite

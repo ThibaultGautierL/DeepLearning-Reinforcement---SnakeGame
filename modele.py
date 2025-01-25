@@ -58,6 +58,6 @@ class QTrainer:
         loss = self.criterion(target, prediction)
         loss.backward()
 
-        self.optimizer.step
+        self.optimizer.step()
 
 
