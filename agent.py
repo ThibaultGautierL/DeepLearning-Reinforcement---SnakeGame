@@ -3,6 +3,7 @@ import random
 import numpy as np
 from collections import deque
 from snake import SnakeGameAI, Direction, Point
+from modele import Linear_QNet, QTrainer
 
 Max_Memory = 100_000
 Batch_Size = 1000
@@ -13,9 +14,13 @@ class Agent:
     #Init
     def __init__(self):
         self.number_games = 0
-        self.randomness = 0
-        self.discount_rate = 0
+        self.randomness = 0 #pour les random moves
+        self.discount_rate = 0.8
         self.memory = deque(maxlen=Max_Memory) #SI on dépasse la mémoire, on supprime les données du début. (Garde les + récentes)
+
+        #Size of states , , nombre d'action
+        self.model = Linear_QNet(11, 256 ,3)
+        self.trainer = QTrainer(self.model, learning_rate=Learning_Rate, discount_rate=self.discount_rate)
 
     #Connaitre l'état du jeu
     def get_state(self, game):
@@ -56,24 +61,76 @@ class Agent:
             (direction_right and game.is_collision(point_over)) or
             (direction_over and game.is_collision(point_left)) or
             (point_under and game.is_collision(point_right)),
+
+            #Directions
+            direction_left, 
+            direction_right, 
+            direction_over, 
+            direction_under,
+
+            #Pomme à gauche
+            game.apple.x < game.head.x,
+            #Pomme à droite
+            game.apple.x > game.head.x,
+            #Pomme en haut
+            game.apple.y < game.head.y,
+            #Pomme en bas
+            game.apple.y > game.head.y
+
         ]
 
+        return np.array(state, dtype=int)
 
-        pass
+
 
     #Rappel des paramètres
     def remember(self, state, action, reward, next_state, gameover):
-        pass
+        #Si on dépasse max memory
+        self.memory.append((state, action, reward, next_state, gameover))
 
 
     def train_long_memory(self):
-        pass
-    
-    def train_short_memory(self, state, action, reward, next_state, gameover):
-        pass
+        #Si on a plus que la valeur de base, on prend un sample
+        if len(self.memory) > Batch_Size: 
+            mini_sample = random.sample(self.memory, Batch_Size)
+        #Sinon on prend tout
+        else:
+            mini_sample = self.memory
 
-    def get_action(self):
-        pass
+        #on va regrouper chaque éléments de la meme catégorie dans de nouveaux tuples (States, actions, etc...)
+        states, actions, rewards, next_states, gameovers = zip(*mini_sample)
+        self.trainer.train_step(states, actions, rewards, next_states, gameovers)
+    
+
+
+    def train_short_memory(self, state, action, reward, next_state, gameover):
+        self.trainer.train_step(state, action, reward, next_state, gameover)
+
+
+    #Random moves : on va faire de lexploration et de l'exploitation
+    def get_action(self, state):
+        #Determine le nombre pour savoir si IA va jouer aléatoireement. Plus on joue, meilleur on est
+        self.randomness = 100 - self.number_games
+        final_move = [0,0,0]
+        #Si on est en dessous de notre nombre
+        if random.randint(0,200) < self.randomness:
+
+            #On choisi entre 0,1,2
+            move = random.randint(0,2)
+            #On donne a la valeur 0,1,2 dans le tableau, la valeur 1. Etc [1,0,0] si la valeur choisie avant est 0
+            final_move[move] = 1
+        else: #Si on ne veut plus d'aléatoire
+            #Me sort un % de chance en fonction du state : [0.1,0.8,0.1]
+            state_init = torch.tensor(state, dtype=torch.float)
+            #Modele de prédiction
+            prediction = self.model(state_init)
+            #Renvoie la plus haute prédiction
+            move = torch.argmax(prediction).item()
+            #On donne a la valeur 0,1,2 dans le tableau, la valeur 1. Etc [1,0,0] si la valeur choisie avant est 0
+            final_move[move] = 1
+
+        return final_move
+
 
 #Training fonction
 def train():
@@ -112,8 +169,12 @@ def train():
 
             if score > best_score:
                 best_score = score
-                #Là on save le modèle
+                agent.model.save()
             print(f"Score: {score}")
+
+            #Faire liste affichage
+
+
 
 if __name__ == '__main__':
     train()
