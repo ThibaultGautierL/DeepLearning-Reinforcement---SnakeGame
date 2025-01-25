@@ -158,7 +158,7 @@ def train():
         agent.train_short_memory(last_state, last_move, reward, new_state, game_over)
 
         #Appel fonction de remember
-        agent.memory(last_state, last_move, reward, new_state, game_over)
+        agent.remember(last_state, last_move, reward, new_state, game_over)
 
         if game_over:
             print(f"Perdu Game {agent.number_games}")
